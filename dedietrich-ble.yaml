@@ -93,7 +93,9 @@ sensor:
 
       # --- Flow temperatures ---
       - parameter: HM008
-        name: "Compressor operation"
+        name: "Compressor turned on"
+      - parameter: AM010
+        name: "Compressor speed %"
       - parameter: HM030
         name: "Request to start compressor"
       - parameter: HM009
@@ -106,29 +108,8 @@ sensor:
         name: "BL2 Contact Position"
 
       # --- Errors ---
-      - parameter: "0x5002:00" # Bieżący kod błędu / blokady (Error / Locking code)
+      - parameter: "0x5002:00"
         name: "Error Code"
-
-  # Slow group (polled every 60s)
-  - platform: bdr_ble
-    update_interval: 60s
-    sensors:
-      - parameter: AC005
-        name: "Energy CH Consumption"
-      - parameter: AC006
-        name: "Energy DHW Consumption"
-      - parameter: AC007
-        name: "Energy Total Consumption"
-      - parameter: AC026
-        name: "Energy Backup Consumption"
-      - parameter: AC008
-        name: "Energy CH Delivery"
-      - parameter: AC009
-        name: "Energy DHW Delivery"
-      - parameter: AC019
-        name: "Energy Backup Delivery"
-      - parameter: varApTotalEnergyDelivery
-        name: "Energy Total Production"
 
 binary_sensor:
   - platform: bdr_ble
@@ -136,8 +117,6 @@ binary_sensor:
     binary_sensors:
       - parameter: HM012
         name: "First Stage Backup Operation"
-      - parameter: HM013
-        name: "Second Stage Backup Operation"
 
 number:
   - platform: bdr_ble
