@@ -75,6 +75,14 @@ sensor:
       - parameter: AM002
         name: "Silent Mode Active"
 
+      # --- Flow temperatures ---
+      - parameter: HM001
+        name: "Heat pump flow temperature °C"
+      - parameter: HM002
+        name: "Heat pump return temperature °C"
+      - parameter: HM003
+        name: "Heat pump flow temperature setpoint in °C"
+
       # --- BL1 / BL2 & Smart Grid Status ---
       - parameter: HM004
         name: "BL1 Contact Position"
