@@ -1,0 +1,299 @@
+esphome:
+  name: dedietrich-ble
+  friendly_name: De Dietrich Heat Pump
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Dedietrich-Ble Fallback"
+
+api:
+
+ota:
+  - platform: esphome
+
+logger:
+  level: INFO
+
+external_components:
+  - source: github://d-lebed/esphome-bdr-ble
+    components: [bdr_ble]
+
+esp32_ble:
+  io_capability: keyboard_only
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+
+ble_client:
+  - mac_address: !secret ble_mac
+    id: boiler_ble
+
+bdr_ble:
+  id: boiler_hub
+  ble_client_id: boiler_ble
+  pin: !secret ble_pin
+  node_id: 1
+  auth_level: 4
+  log_snapshot: false
+
+switch:
+  - platform: ble_client
+    ble_client_id: boiler_ble
+    name: "Heat Pump BLE Connect"
+    restore_mode: RESTORE_DEFAULT_ON
+    entity_category: config
+
+text_sensor:
+  - platform: bdr_ble
+    status:
+      name: "BLE Status"
+
+sensor:
+  # Fast group (polled every 10s)
+  - platform: bdr_ble
+    update_interval: 10s
+    sensors:
+      # --- Core Temperatures, Pressure & Status ---
+      - parameter: AM027
+        name: "Outside Temperature"
+      - parameter: AM016
+        name: "Flow Temperature"
+      - parameter: DM001
+        name: "DHW Temperature"
+      - parameter: AM019
+        name: "Water Pressure"
+      - parameter: AM012
+        name: "Operating Status Code"
+      - parameter: AM002
+        name: "Silent Mode Active"
+
+      # --- BL1 / BL2 & Smart Grid Status ---
+      - parameter: HM004
+        name: "BL1 Contact Position"
+      - parameter: HM005
+        name: "BL2 Contact Position"
+      - parameter: AM657
+        name: "Smart Grid Current Mode"
+
+      # --- Active Error & Fault Monitoring ---
+      - parameter: AM003
+        name: "Error Status"
+      - parameter: AM004
+        name: "Current Blocking Code"
+      - parameter: AM005
+        name: "Current Locking Code"
+      - parameter: HM007
+        name: "Heat Pump Unit Failure"
+      - parameter: HM134
+        name: "Outdoor Unit Error Code"
+      - parameter: HM189
+        name: "Outdoor Inverter Fault Code"
+      - parameter: HM042
+        name: "HP Backup Blocking Code"
+      - parameter: AM191
+        name: "Waterflow Error Counter"
+
+  # Slow group (polled every 60s)
+  - platform: bdr_ble
+    update_interval: 60s
+    sensors:
+      - parameter: AC005
+        name: "Energy CH Consumption"
+      - parameter: AC006
+        name: "Energy DHW Consumption"
+      - parameter: AC007
+        name: "Energy Total Consumption"
+      - parameter: AC026
+        name: "Energy Backup Consumption"
+      - parameter: AC008
+        name: "Energy CH Delivery"
+      - parameter: AC009
+        name: "Energy DHW Delivery"
+      - parameter: AC019
+        name: "Energy Backup Delivery"
+      - parameter: varApTotalEnergyDelivery
+        name: "Energy Total Production"
+
+binary_sensor:
+  - platform: bdr_ble
+    update_interval: 10s
+    binary_sensors:
+      - parameter: HM012
+        name: "First Stage Backup Operation"
+      - parameter: HM013
+        name: "Second Stage Backup Operation"
+
+number:
+  - platform: bdr_ble
+    update_interval: 30s
+    numbers:
+      # --- DHW Controls ---
+      - parameter: DP070
+        name: "DHW Comfort Setpoint"
+        min_value: 35
+        max_value: 65
+        step: 0.5
+        mode: box
+
+      # --- PV / Smart Grid / BL1-BL2 Temperature Boost Offsets ---
+      - parameter: HP092
+        name: "PV / Smart Grid DHW Offset"
+        min_value: 0
+        max_value: 20
+        step: 0.5
+        mode: box
+      - parameter: DP512
+        name: "PV Input DHW Setpoint"
+        min_value: 35
+        max_value: 65
+        step: 0.5
+        mode: box
+      - parameter: HP091
+        name: "PV / Smart Grid Heating Offset"
+        min_value: 0
+        max_value: 15
+        step: 0.5
+        mode: box
+      - parameter: HP213
+        name: "PV / Smart Grid Cooling Offset"
+        min_value: 0
+        max_value: 10
+        step: 0.5
+        mode: box
+
+      # --- Central Heating Room & Flow Setpoints ---
+      - parameter: CP080
+        name: "CH Room Comfort Setpoint"
+        min_value: 15
+        max_value: 28
+        step: 0.5
+        mode: box
+      - parameter: CP510
+        name: "CH Temporary Room Setpoint"
+        min_value: 15
+        max_value: 28
+        step: 0.5
+        mode: box
+      - parameter: CP200
+        name: "CH Manual Room Setpoint"
+        min_value: 15
+        max_value: 28
+        step: 0.5
+        mode: box
+      - parameter: CP060
+        name: "CH Holiday Room Setpoint"
+        min_value: 10
+        max_value: 22
+        step: 0.5
+        mode: box
+      - parameter: CP010
+        name: "CH Flow Temperature Setpoint"
+        min_value: 20
+        max_value: 60
+        step: 0.5
+        mode: box
+      - parameter: CP000
+        name: "CH Max Flow Temperature"
+        min_value: 25
+        max_value: 65
+        step: 1
+        mode: box
+      - parameter: CP260
+        name: "CH Min Flow Temperature"
+        min_value: 15
+        max_value: 45
+        step: 1
+        mode: box
+
+      # --- Central Heating Curve ---
+      - parameter: CP210
+        name: "CH Heat Curve Comfort Base Temp"
+        min_value: 15
+        max_value: 30
+        step: 0.5
+        mode: box
+      - parameter: CP220
+        name: "CH Heat Curve Reduced Base Temp"
+        min_value: 10
+        max_value: 25
+        step: 0.5
+        mode: box
+      - parameter: CP230
+        name: "CH Heating Curve Slope"
+        min_value: 0
+        max_value: 40
+        step: 1
+        mode: box
+
+      # --- Heat Pump Backup & Limits ---
+      - parameter: HP000
+        name: "Bivalent Temperature"
+        min_value: -20
+        max_value: 15
+        step: 1
+        mode: box
+      - parameter: HP002
+        name: "Max HP Flow Temperature"
+        min_value: 30
+        max_value: 65
+        step: 1
+        mode: box
+
+      # --- Low Noise / Silent Mode Schedule & Limits (HoursMinutes: value * 10 min) ---
+      - parameter: HP094
+        name: "Low Noise Start Time"
+        min_value: 0
+        max_value: 143
+        step: 1
+        mode: box
+      - parameter: HP095
+        name: "Low Noise Stop Time"
+        min_value: 0
+        max_value: 143
+        step: 1
+        mode: box
+      - parameter: HP168
+        name: "Low Noise Max Compressor Speed"
+        min_value: 10
+        max_value: 120
+        step: 1
+        mode: box
+      - parameter: HP169
+        name: "Low Noise Max Fan Speed"
+        min_value: 100
+        max_value: 1000
+        step: 10
+        mode: box
+
+select:
+  - platform: bdr_ble
+    update_interval: 30s
+    selects:
+      - parameter: DP200
+        name: "DHW Operating Mode"
+      - parameter: CP320
+        name: "CH Zone Operating Mode"
+      - parameter: CP570
+        name: "CH Time Program"
+      - parameter: HP058
+        name: "HP Silent Mode Level"
+      - parameter: AP001
+        name: "BL1 Blocking Input Function"
+      - parameter: AP098
+        name: "BL1 Input Contact Logic"
+      - parameter: AP100
+        name: "BL2 Input Function"
+      - parameter: AP099
+        name: "BL2 Input Contact Logic"
+      - parameter: AP055
+        name: "PV Input Self Consumption Mode"
+      - parameter: AP057
+        name: "PV Input Contact Logic"
