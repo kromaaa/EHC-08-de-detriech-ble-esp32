@@ -72,16 +72,32 @@ sensor:
         name: "Water Pressure"
       - parameter: AM012
         name: "Operating Status Code"
+      - parameter: AM014
+        name: "Operating sub Status Code"
       - parameter: AM002
         name: "Silent Mode Active"
+      - parameter: AM037
+        name: "Three way valve status"
 
       # --- Flow temperatures ---
+      - parameter: AM101
+        name: "Internal system flow temperature setpoint in °C"
+      - parameter: AM016
+        name: "Flow temperature of appliance. in °C"
       - parameter: HM001
         name: "Heat pump flow temperature °C"
       - parameter: HM002
         name: "Heat pump return temperature °C"
       - parameter: HM003
         name: "Heat pump flow temperature setpoint in °C"
+
+      # --- Flow temperatures ---
+      - parameter: HM008
+        name: "Compressor operation"
+      - parameter: HM030
+        name: "Request to start compressor"
+      - parameter: HM009
+        name: "Heat pump defrost function in progress"
 
       # --- BL1 / BL2 & Smart Grid Status ---
       - parameter: HM004
@@ -91,23 +107,9 @@ sensor:
       - parameter: AM657
         name: "Smart Grid Current Mode"
 
-      # --- Active Error & Fault Monitoring ---
-      - parameter: AM003
-        name: "Error Status"
-      - parameter: AM004
-        name: "Current Blocking Code"
-      - parameter: AM005
-        name: "Current Locking Code"
-      - parameter: HM007
-        name: "Heat Pump Unit Failure"
-      - parameter: HM134
-        name: "Outdoor Unit Error Code"
-      - parameter: HM189
-        name: "Outdoor Inverter Fault Code"
-      - parameter: HM042
-        name: "HP Backup Blocking Code"
-      - parameter: AM191
-        name: "Waterflow Error Counter"
+      # --- Errors ---
+      - parameter: "0x5002:00" # Bieżący kod błędu / blokady (Error / Locking code)
+        name: "Error Code"
 
   # Slow group (polled every 60s)
   - platform: bdr_ble
