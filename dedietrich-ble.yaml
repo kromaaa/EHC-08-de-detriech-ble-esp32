@@ -104,8 +104,6 @@ sensor:
         name: "BL1 Contact Position"
       - parameter: HM005
         name: "BL2 Contact Position"
-      - parameter: AM657
-        name: "Smart Grid Current Mode"
 
       # --- Errors ---
       - parameter: "0x5002:00" # Bieżący kod błędu / blokady (Error / Locking code)
@@ -158,12 +156,6 @@ number:
         name: "PV / Smart Grid DHW Offset"
         min_value: 0
         max_value: 20
-        step: 0.5
-        mode: box
-      - parameter: DP512
-        name: "PV Input DHW Setpoint"
-        min_value: 35
-        max_value: 65
         step: 0.5
         mode: box
       - parameter: HP091
@@ -270,18 +262,6 @@ number:
         max_value: 143
         step: 1
         mode: box
-      - parameter: HP168
-        name: "Low Noise Max Compressor Speed"
-        min_value: 10
-        max_value: 120
-        step: 1
-        mode: box
-      - parameter: HP169
-        name: "Low Noise Max Fan Speed"
-        min_value: 100
-        max_value: 1000
-        step: 10
-        mode: box
 
 select:
   - platform: bdr_ble
@@ -304,6 +284,3 @@ select:
       - parameter: AP099
         name: "BL2 Input Contact Logic"
       - parameter: AP055
-        name: "PV Input Self Consumption Mode"
-      - parameter: AP057
-        name: "PV Input Contact Logic"
