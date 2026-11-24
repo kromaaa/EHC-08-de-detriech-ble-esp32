@@ -56,6 +56,71 @@ text_sensor:
     status:
       name: "BLE Status"
 
+  # Current error (0x5047 block) — mirrors the code shown on the HMI.
+  # "Error Severity" is a friendly label driven by the numeric 0x5047:03 sensor
+  # (see the on_value handler in the sensor section below).
+  - platform: template
+    name: "Error Severity"
+    id: error_severity_txt
+  # 0x5047:07 -> third-party (e.g. outdoor unit) error string, when present
+  - platform: bdr_ble
+    parameter: "0x5047:07"
+    name: "Error Details"
+  # Combined HMI-style code (A/H/E xx.xx) built from the numeric 0x5047 sensors.
+  - platform: template
+    name: "Error Code"
+    id: current_error_txt
+    update_interval: 10s
+    lambda: |-
+      // Idle marker reported by the boiler: severity 0xFF. Note 0x5047:00 is the
+      // struct entry count (4), NOT the number of active errors, so it must not
+      // be used to detect an error. The generic code reads 0xFFFF when idle,
+      // which the decoder rejects -> NaN.
+      float sev = id(current_error_severity_num).state;
+      float code = id(current_error_code).state;
+      bool no_sev = std::isnan(sev) || sev >= 255.0f;
+      bool no_code = std::isnan(code) || code <= 0.0f || code >= 65535.0f;
+      if (no_sev && no_code) {
+        return std::string("None");
+      }
+      if (no_code) {
+        return std::string("Unknown");
+      }
+      int raw = static_cast<int>(code + 0.5f);
+      int hi = (raw >> 8) & 0xFF;
+      int lo = raw & 0xFF;
+      const char *cat = "?";
+      if (!std::isnan(sev)) {
+        int s = static_cast<int>(sev + 0.5f);
+        if (s == 0) {
+          cat = "E";  // Locking
+        } else if (s == 3) {
+          cat = "H";  // Blocking / regulating shutdown
+        } else if (s == 6) {
+          cat = "A";  // Warning
+        }
+      }
+      char buf[16];
+      snprintf(buf, sizeof(buf), "%s%02X.%02X", cat, hi, lo);
+      return std::string(buf);
+
+  # Template text sensors driven by the numeric AM012 / AM014 sensors below.
+  # NOTE: the bdr_ble text_sensor already publishes a descriptive enum label,
+  # which is why the previous `x == "3"` mapping never matched. These templates
+  # are fed from the numeric sensor `on_value` handlers instead.
+  - platform: template
+    name: "Operating Status Text"
+    id: operating_status_txt
+
+  - platform: template
+    name: "Operating sub Status Text"
+    id: sub_status_txt
+
+  # Friendly three-way valve position (AM037 is kept internal, see on_value).
+  - platform: template
+    name: "Three way valve status"
+    id: three_way_valve_txt
+
 sensor:
   # Fast group (polled every 10s)
   - platform: bdr_ble
@@ -70,14 +135,96 @@ sensor:
         name: "DHW Temperature"
       - parameter: AM019
         name: "Water Pressure"
+      # AM012 / AM014 are kept internal: they still poll and feed the
+      # "Operating Status Text" / "Operating sub Status Text" template sensors
+      # via on_value, but do not appear as numeric entities in Home Assistant.
       - parameter: AM012
         name: "Operating Status Code"
+        id: operating_status_code
+        internal: true
+        on_value:
+          then:
+            - lambda: |-
+                int v = static_cast<int>(x + 0.5f);
+                switch (v) {
+                  case 0: id(operating_status_txt).publish_state("0:Standby"); break;
+                  case 1: id(operating_status_txt).publish_state("1:Heating"); break;
+                  case 2: id(operating_status_txt).publish_state("2:DHW heating"); break;
+                  case 3: id(operating_status_txt).publish_state("3:Compressor on"); break;
+                  case 4: id(operating_status_txt).publish_state("4:Compressor off"); break;
+                  case 5: id(operating_status_txt).publish_state("5:Hot water mode"); break;
+                  case 6: id(operating_status_txt).publish_state("6:Frost protection"); break;
+                  case 7: id(operating_status_txt).publish_state("7:Error state"); break;
+                  case 8: id(operating_status_txt).publish_state("8:Controlled stop"); break;
+                  case 9: id(operating_status_txt).publish_state("9:Blocking mode"); break;
+                  case 10: id(operating_status_txt).publish_state("10:Locking mode"); break;
+                  case 14: id(operating_status_txt).publish_state("14:---"); break;
+                  case 15: id(operating_status_txt).publish_state("15:Manual heat demand"); break;
+                  case 16: id(operating_status_txt).publish_state("16:Frost protection active"); break;
+                  case 17: id(operating_status_txt).publish_state("17:De-aeration"); break;
+                  default: id(operating_status_txt).publish_state("Unknown"); break;
+                }
       - parameter: AM014
         name: "Operating sub Status Code"
+        id: sub_status_code
+        internal: true
+        on_value:
+          then:
+            - lambda: |-
+                int v = static_cast<int>(x + 0.5f);
+                switch (v) {
+                  case 0: id(sub_status_txt).publish_state("0:Standby"); break;
+                  case 1: id(sub_status_txt).publish_state("1:Anti-cycling"); break;
+                  case 2: id(sub_status_txt).publish_state("2:Open hydraulic valve"); break;
+                  case 3: id(sub_status_txt).publish_state("3:Pump start"); break;
+                  case 5: id(sub_status_txt).publish_state("5:---"); break;
+                  case 6: id(sub_status_txt).publish_state("6:---"); break;
+                  case 7: id(sub_status_txt).publish_state("7:---"); break;
+                  case 8: id(sub_status_txt).publish_state("8:---"); break;
+                  case 9: id(sub_status_txt).publish_state("9:---"); break;
+                  case 30: id(sub_status_txt).publish_state("30:Normal internal setpoint"); break;
+                  case 31: id(sub_status_txt).publish_state("31:Limited internal setpoint"); break;
+                  case 32: id(sub_status_txt).publish_state("32:Normal power control"); break;
+                  case 33: id(sub_status_txt).publish_state("33:Gradient control level 1"); break;
+                  case 34: id(sub_status_txt).publish_state("34:Gradient control level 2"); break;
+                  case 35: id(sub_status_txt).publish_state("35:Gradient control level 3"); break;
+                  case 37: id(sub_status_txt).publish_state("37:Stabilisation time"); break;
+                  case 38: id(sub_status_txt).publish_state("38:Cold start"); break;
+                  case 46: id(sub_status_txt).publish_state("46:---"); break;
+                  case 47: id(sub_status_txt).publish_state("47:---"); break;
+                  case 48: id(sub_status_txt).publish_state("48:---"); break;
+                  case 49: id(sub_status_txt).publish_state("49:---"); break;
+                  case 60: id(sub_status_txt).publish_state("60:Pump post running"); break;
+                  case 61: id(sub_status_txt).publish_state("61:Pump stop"); break;
+                  case 62: id(sub_status_txt).publish_state("62:Close hydraulic valve"); break;
+                  case 63: id(sub_status_txt).publish_state("63:Start anti-cycle timer"); break;
+                  case 65: id(sub_status_txt).publish_state("65:Heat pump relieved, backup on"); break;
+                  case 66: id(sub_status_txt).publish_state("66:HP flow over max, backup on"); break;
+                  case 67: id(sub_status_txt).publish_state("67:HP off external condition, backup on"); break;
+                  case 68: id(sub_status_txt).publish_state("68:HP off hybrid, backup on"); break;
+                  case 69: id(sub_status_txt).publish_state("69:Defrosting (heat pump only)"); break;
+                  case 70: id(sub_status_txt).publish_state("70:Defrosting (backup only)"); break;
+                  case 71: id(sub_status_txt).publish_state("71:Defrosting (HP + backup)"); break;
+                  case 72: id(sub_status_txt).publish_state("72:Pump source post-run + backup"); break;
+                  case 255: id(sub_status_txt).publish_state("255:Reset wait time"); break;
+                  default: id(sub_status_txt).publish_state("Unknown"); break;
+                }
       - parameter: AM002
         name: "Silent Mode Active"
       - parameter: AM037
-        name: "Three way valve status"
+        name: "Three Way Valve Raw"
+        id: three_way_valve
+        internal: true
+        on_value:
+          then:
+            - lambda: |-
+                int v = static_cast<int>(x + 0.5f);
+                switch (v) {
+                  case 0: id(three_way_valve_txt).publish_state("CH"); break;
+                  case 1: id(three_way_valve_txt).publish_state("DHW"); break;
+                  case 2: id(three_way_valve_txt).publish_state("None"); break;
+                  default: id(three_way_valve_txt).publish_state("Unknown"); break;
+                }
 
       # --- Flow temperatures ---
       - parameter: AM101
@@ -91,7 +238,7 @@ sensor:
       - parameter: HM003
         name: "Heat pump flow temperature setpoint in °C"
 
-      # --- Flow temperatures ---
+      # --- Compressor ---
       - parameter: HM008
         name: "Compressor turned on"
       - parameter: AM010
@@ -107,9 +254,33 @@ sensor:
       - parameter: HM005
         name: "BL2 Contact Position"
 
-      # --- Errors ---
-      - parameter: "0x5002:00"
-        name: "Error Code"
+      # --- Errors / Faults ---
+      # The HMI error code lives in the 0x5047 "Current Error Status" block:
+      #   0x5047:01 = generic code (packed A/H/E xx.xx -> "Error Code" text sensor)
+      #   0x5047:03 = severity (0 Locking / 3 Blocking / 6 Warning, 255 = no error)
+      # NOTE: 0x5047:00 is the struct entry count (constant 4), not the number of
+      # active errors, so it is not used.
+      # AM004/AM005 (0x5004/0x5005) are NOT HMI error codes: they return 0xFF
+      # when idle and are not part of the manual's error table, so they are gone.
+      - parameter: "0x5047:01"
+        name: "Current Error Code Raw"
+        id: current_error_code
+        internal: true
+      - parameter: "0x5047:03"
+        name: "Current Error Severity Code"
+        id: current_error_severity_num
+        internal: true
+        on_value:
+          then:
+            - lambda: |-
+                int v = static_cast<int>(x + 0.5f);
+                switch (v) {
+                  case 0: id(error_severity_txt).publish_state("Locking (E)"); break;
+                  case 3: id(error_severity_txt).publish_state("Blocking (H)"); break;
+                  case 6: id(error_severity_txt).publish_state("Warning (A)"); break;
+                  case 255: id(error_severity_txt).publish_state("None"); break;
+                  default: id(error_severity_txt).publish_state("Unknown"); break;
+                }
 
 binary_sensor:
   - platform: bdr_ble
@@ -132,19 +303,19 @@ number:
 
       # --- PV / Smart Grid / BL1-BL2 Temperature Boost Offsets ---
       - parameter: HP092
-        name: "PV / Smart Grid DHW Offset"
+        name: "PV ⁄ Smart Grid DHW Offset"
         min_value: 0
         max_value: 20
         step: 0.5
         mode: box
       - parameter: HP091
-        name: "PV / Smart Grid Heating Offset"
+        name: "PV ⁄ Smart Grid Heating Offset"
         min_value: 0
         max_value: 15
         step: 0.5
         mode: box
       - parameter: HP213
-        name: "PV / Smart Grid Cooling Offset"
+        name: "PV ⁄ Smart Grid Cooling Offset"
         min_value: 0
         max_value: 10
         step: 0.5
@@ -194,7 +365,7 @@ number:
         step: 1
         mode: box
 
-      # --- Central Heating Curve ---
+      # --- CH Heat Curve ---
       - parameter: CP210
         name: "CH Heat Curve Comfort Base Temp"
         min_value: 15
@@ -263,3 +434,4 @@ select:
       - parameter: AP099
         name: "BL2 Input Contact Logic"
       - parameter: AP055
+        name: "PV input contact configuration"
