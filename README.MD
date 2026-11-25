@@ -24,8 +24,6 @@ ESP32 + ESPHome bridge for a De Dietrich/BDR Thermea heat pump using [esphome-bd
 
 ## Usage
 
-- Web interface: `http://dedietrich-ble.local` or the ESP32's IP address.
-- Fallback Wi-Fi: `Dedietrich-Ble Fallback`; the captive portal opens automatically.
 - Readable entities include `Operating Status Text`, `Operating sub Status Text`, `Error Code` (`A/H/E xx.xx`), `Error Severity`, `Error Details` and `Three way valve status` (`CH`/`DHW`/`None`).
 - **Low Noise Start Time** and **Low Noise Stop Time** are normal time pickers with 10-minute resolution.
 - **DHW Thermal Disinfection** is the manual's `DP004` / **Legionella calor.** parameter.
@@ -33,7 +31,7 @@ ESP32 + ESPHome bridge for a De Dietrich/BDR Thermea heat pump using [esphome-bd
 
 ## Troubleshooting
 
-Check `BLE Status` in the web interface first.
+Check `BLE Status` in Home Assistant first.
 
 Logs over Wi-Fi:
 ```bash
