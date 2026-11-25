@@ -77,7 +77,9 @@ text_sensor:
       float code = id(current_error_code).state;
       bool no_sev = std::isnan(sev) || sev >= 255.0f;
       bool no_code = std::isnan(code) || code >= 65535.0f;
-      if (no_sev && no_code) {
+      if (no_sev) {
+        // Severity 0xFF is the boiler's explicit "no current error" marker.
+        // The generic code can remain cached briefly after recovery.
         return std::string("None");
       }
       if (no_code) {
