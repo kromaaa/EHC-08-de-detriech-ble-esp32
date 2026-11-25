@@ -134,7 +134,7 @@ sensor:
       - parameter: AM027
         name: "Outside Temperature"
       - parameter: AM016
-        name: "Flow Temperature"
+        name: "Appliance Water Flow Temperature"
       - parameter: DM001
         name: "DHW Temperature"
       - parameter: DM019
@@ -294,15 +294,17 @@ sensor:
 
       # --- Flow temperatures ---
       - parameter: AM101
-        name: "Internal system flow temperature setpoint in °C"
-      - parameter: AM016
-        name: "Flow temperature of appliance. in °C"
+        name: "Internal DHW Water Setpoint"
       - parameter: HM001
-        name: "Heat pump flow temperature °C"
+        name: "Heat Pump Water Outlet Temperature"
       - parameter: HM002
-        name: "Heat pump return temperature °C"
+        name: "Heat Pump Water Return Temperature"
       - parameter: HM003
-        name: "Heat pump flow temperature setpoint in °C"
+        name: "System Water Flow Setpoint (incl. Backup)"
+
+      # --- Refrigerant temperatures ---
+      - parameter: HM019
+        name: "Refrigerant Condensing Temperature"
 
       # --- Compressor ---
       - parameter: HM008
