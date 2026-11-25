@@ -67,11 +67,11 @@ esphome run dedietrich-ble.yaml --device dedietrich-ble.local
 * **Temperatures & Hydraulics:** Outside Temperature (`AM027`), Flow Temperature (`AM016`), DHW Temperature (`DM001`), Water Pressure (`AM019`)
 * **Status & Inputs:** Operating Status Code (`AM012`), Silent Mode Active (`AM002`), BL1/BL2 Contact Positions (`HM004`, `HM005`), Smart Grid Current Mode (`AM657`), Backup Heater Stage 1 & 2 (`HM012`, `HM013`)
 * **Energy Counters:** CH / DHW / Backup / Total Consumption & Delivery (`AC005`–`AC009`, `AC019`, `AC026`, `varApTotalEnergyDelivery`)
-* **Fault & Blocking Tracking:** Error Status (`AM003`), Current Blocking Code (`AM004`), Current Locking Code (`AM005`), HP Unit Failure (`HM007`), Outdoor Unit Error (`HM134`), Inverter Fault (`HM189`), Backup Blocking (`HM042`), Waterflow Error Counter (`AM191`)
+* **Fault & Blocking Tracking:** HMI-style error code, severity and details (`0x5047:01/:03/:07`) via `Error Code`, `Error Severity`, `Error Details`
 
-### Controls (`number` & `select`)
-* **Domestic Hot Water (DHW):** Comfort Setpoint (`DP070`), Operating Mode (`DP200`)
+### Controls (`number`, `select` & `datetime`)
+* **Domestic Hot Water (DHW):** Comfort Setpoint (`DP070`), Operating Mode (`DP200`), Legionella calor. / Thermal Disinfection (`DP004`)
 * **Central Heating (CH):** Room Comfort / Temporary / Manual / Holiday Setpoints (`CP080`, `CP510`, `CP200`, `CP060`), Flow Setpoint & Min/Max Limits (`CP010`, `CP260`, `CP000`), Heating Curve Comfort/Reduced Base & Slope (`CP210`, `CP220`, `CP230`), Zone Mode (`CP320`), Time Program (`CP570`)
 * **Heat Pump Limits:** Bivalent Temperature (`HP000`), Max HP Flow Temperature (`HP002`)
-* **Low Noise / Silent Mode:** Silent Mode Level (`HP058`), Start & Stop Time (`HP094`, `HP095` — encoded as `HoursMinutes`, `value × 10 min`, e.g., `132` = `22:00`, `36` = `06:00`), Max Compressor & Fan Speed (`HP168`, `HP169`)
+* **Low Noise / Silent Mode:** Silent Mode Level (`HP058`), Start & Stop Time (`HP094`, `HP095`) as normal time pickers; the device stores 10-minute slots internally, Max Compressor & Fan Speed (`HP168`, `HP169`)
 * **BL1 / BL2 & Smart Grid / PV Boost:** BL1/BL2 Functions & Contact Logic (`AP001`, `AP098`, `AP100`, `AP099`), PV Self-Consumption Mode & Contact Logic (`AP055`, `AP057`), PV/Smart Grid DHW & Heating Offsets (`HP092`, `DP512`, `HP091`, `HP213`)

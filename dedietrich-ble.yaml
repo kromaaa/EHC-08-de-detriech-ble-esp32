@@ -18,6 +18,11 @@ api:
 ota:
   - platform: esphome
 
+web_server:
+  port: 80
+
+captive_portal:
+
 logger:
   level: INFO
 
@@ -72,14 +77,13 @@ text_sensor:
     id: current_error_txt
     update_interval: 10s
     lambda: |-
-      // Idle marker reported by the boiler: severity 0xFF. Note 0x5047:00 is the
-      // struct entry count (4), NOT the number of active errors, so it must not
-      // be used to detect an error. The generic code reads 0xFFFF when idle,
-      // which the decoder rejects -> NaN.
+      // The HMI uses decimal code parts. The raw U16 packs them as two bytes:
+      // H00.51 is raw 0x0033 (0x33 hex = 51 decimal), so print each byte with %02d,
+      // not %02X. Code 0x0000 is a valid H00.00; only NaN/0xFFFF mean no code.
       float sev = id(current_error_severity_num).state;
       float code = id(current_error_code).state;
       bool no_sev = std::isnan(sev) || sev >= 255.0f;
-      bool no_code = std::isnan(code) || code <= 0.0f || code >= 65535.0f;
+      bool no_code = std::isnan(code) || code >= 65535.0f;
       if (no_sev && no_code) {
         return std::string("None");
       }
@@ -101,7 +105,7 @@ text_sensor:
         }
       }
       char buf[16];
-      snprintf(buf, sizeof(buf), "%s%02X.%02X", cat, hi, lo);
+      snprintf(buf, sizeof(buf), "%s%02d.%02d", cat, hi, lo);
       return std::string(buf);
 
   # Template text sensors driven by the numeric AM012 / AM014 sensors below.
@@ -256,7 +260,7 @@ sensor:
 
       # --- Errors / Faults ---
       # The HMI error code lives in the 0x5047 "Current Error Status" block:
-      #   0x5047:01 = generic code (packed A/H/E xx.xx -> "Error Code" text sensor)
+      #   0x5047:01 = generic code (two decimal bytes packed into a U16)
       #   0x5047:03 = severity (0 Locking / 3 Blocking / 6 Warning, 255 = no error)
       # NOTE: 0x5047:00 is the struct entry count (constant 4), not the number of
       # active errors, so it is not used.
@@ -399,19 +403,76 @@ number:
         step: 1
         mode: box
 
-      # --- Low Noise / Silent Mode Schedule & Limits (HoursMinutes: value * 10 min) ---
+      # --- Low Noise / Silent Mode Schedule & Limits ---
+      # Raw values are 10-minute slots since midnight (0..143 = 00:00..23:50).
+      # These stay internal; the time pickers below convert to/from HH:MM.
       - parameter: HP094
-        name: "Low Noise Start Time"
+        name: "Low Noise Start Time Raw"
+        id: low_noise_start_raw
+        internal: true
         min_value: 0
         max_value: 143
         step: 1
         mode: box
       - parameter: HP095
-        name: "Low Noise Stop Time"
+        name: "Low Noise Stop Time Raw"
+        id: low_noise_stop_raw
+        internal: true
         min_value: 0
         max_value: 143
         step: 1
         mode: box
+
+datetime:
+  # Device stores 10-minute slots since midnight, so picker values are snapped
+  # to the nearest 10 minutes on write.
+  - platform: template
+    type: time
+    name: "Low Noise Start Time"
+    id: low_noise_start_time
+    update_interval: 30s
+    lambda: |-
+      float raw = id(low_noise_start_raw).state;
+      if (std::isnan(raw)) {
+        return {};
+      }
+      int mins = static_cast<int>(raw + 0.5f) * 10;
+      ESPTime t{};
+      t.hour = mins / 60;
+      t.minute = mins % 60;
+      t.second = 0;
+      return t;
+    set_action:
+      - lambda: |-
+          int mins = x.hour * 60 + x.minute;
+          int raw = (mins + 5) / 10;  // nearest 10-minute slot
+          if (raw > 143) raw = 143;
+          id(low_noise_start_raw).make_call().set_value(static_cast<float>(raw)).perform();
+          id(low_noise_start_raw).publish_state(static_cast<float>(raw));
+
+  - platform: template
+    type: time
+    name: "Low Noise Stop Time"
+    id: low_noise_stop_time
+    update_interval: 30s
+    lambda: |-
+      float raw = id(low_noise_stop_raw).state;
+      if (std::isnan(raw)) {
+        return {};
+      }
+      int mins = static_cast<int>(raw + 0.5f) * 10;
+      ESPTime t{};
+      t.hour = mins / 60;
+      t.minute = mins % 60;
+      t.second = 0;
+      return t;
+    set_action:
+      - lambda: |-
+          int mins = x.hour * 60 + x.minute;
+          int raw = (mins + 5) / 10;  // nearest 10-minute slot
+          if (raw > 143) raw = 143;
+          id(low_noise_stop_raw).make_call().set_value(static_cast<float>(raw)).perform();
+          id(low_noise_stop_raw).publish_state(static_cast<float>(raw));
 
 select:
   - platform: bdr_ble
@@ -419,6 +480,9 @@ select:
     selects:
       - parameter: DP200
         name: "DHW Operating Mode"
+      - parameter: DP004
+        # "Legionella calor." in the installation manual.
+        name: "DHW Thermal Disinfection"
       - parameter: CP320
         name: "CH Zone Operating Mode"
       - parameter: CP570
