@@ -24,7 +24,7 @@ ESP32 + ESPHome bridge for a De Dietrich/BDR Thermea heat pump using [esphome-bd
 
 ## Usage
 
-- Readable entities include `Operating Status Text`, `Operating sub Status Text`, `Error Code` (`A/H/E xx.xx`), `Error Severity`, `Error Details` and `Three way valve status` (`CH`/`DHW`/`None`).
+- Readable entities include `Operating Status Text`, `Operating sub Status Text`, `Error Code` (`A/H/E xx.xx`), `Error Severity`, `Error Details`, `Three way valve status` (`CH`/`DHW`/`None`) and `DHW Activity` (`Off`/`Eco`/`Comfort`/`Thermal disinfection`).
 - **Low Noise Start Time** and **Low Noise Stop Time** are normal time pickers with 10-minute resolution.
 - **DHW Thermal Disinfection** is the manual's `DP004` / **Legionella calor.** parameter.
 - The heat pump accepts one BLE connection. Close the De Dietrich phone app or disable **Heat Pump BLE Connect** before using the app.

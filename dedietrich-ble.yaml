@@ -118,6 +118,11 @@ text_sensor:
     name: "Three way valve status"
     id: three_way_valve_txt
 
+  # Current DHW activity (DM019 is kept internal, see on_value).
+  - platform: template
+    name: "DHW Activity"
+    id: dhw_activity_txt
+
 sensor:
   # Fast group (polled every 10s)
   - platform: bdr_ble
@@ -130,6 +135,21 @@ sensor:
         name: "Flow Temperature"
       - parameter: DM001
         name: "DHW Temperature"
+      - parameter: DM019
+        name: "DHW Activity Raw"
+        id: dhw_activity_code
+        internal: true
+        on_value:
+          then:
+            - lambda: |-
+                int v = static_cast<int>(x + 0.5f);
+                switch (v) {
+                  case 0: id(dhw_activity_txt).publish_state("Off"); break;
+                  case 1: id(dhw_activity_txt).publish_state("Eco"); break;
+                  case 2: id(dhw_activity_txt).publish_state("Comfort"); break;
+                  case 3: id(dhw_activity_txt).publish_state("Thermal disinfection"); break;
+                  default: id(dhw_activity_txt).publish_state(("Unknown (" + std::to_string(v) + ")").c_str()); break;
+                }
       - parameter: AM019
         name: "Water Pressure"
       # AM012 / AM014 are kept internal: they still poll and feed the
@@ -342,6 +362,12 @@ number:
         name: "DHW Comfort Setpoint"
         min_value: 35
         max_value: 65
+        step: 0.5
+        mode: box
+      - parameter: DP080
+        name: "DHW Eco Setpoint"
+        min_value: 10
+        max_value: 60
         step: 0.5
         mode: box
 
