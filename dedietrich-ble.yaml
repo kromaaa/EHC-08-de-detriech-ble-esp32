@@ -370,6 +370,12 @@ number:
         max_value: 60
         step: 0.5
         mode: box
+      - parameter: DP120
+        name: "DHW Hysteresis"
+        min_value: 0
+        max_value: 40
+        step: 0.5
+        mode: box
 
       # --- PV / Smart Grid / BL1-BL2 Temperature Boost Offsets ---
       - parameter: HP092
@@ -549,6 +555,8 @@ select:
       - parameter: DP004
         # "Legionella calor." in the installation manual.
         name: "DHW Thermal Disinfection"
+      - parameter: DP051
+        name: "DHW Eco/Comfort Management"
       - parameter: CP320
         name: "CH Zone Operating Mode"
       - parameter: CP570
