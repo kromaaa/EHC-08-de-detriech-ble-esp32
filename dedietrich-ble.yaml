@@ -6,6 +6,10 @@ esp32:
   board: esp32dev
   framework:
     type: esp-idf
+    advanced:
+      flash_chip: generic
+      minimum_chip_revision: "3.1"
+      sram1_as_iram: true
 
 wifi:
   ssid: !secret wifi_ssid
@@ -126,6 +130,13 @@ text_sensor:
     id: dhw_activity_txt
 
 sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal Strength"
+    id: wifi_signal_strength
+    update_interval: 60s
+    entity_category: diagnostic
+    icon: mdi:wifi
+
   # Fast group (polled every 10s)
   - platform: bdr_ble
     update_interval: 10s
@@ -560,7 +571,7 @@ select:
         # "Legionella calor." in the installation manual.
         name: "DHW Thermal Disinfection"
       - parameter: DP051
-        name: "DHW Eco/Comfort Management"
+        name: "DHW Eco⁄Comfort Management"
       - parameter: CP320
         name: "CH Zone Operating Mode"
       - parameter: CP570
